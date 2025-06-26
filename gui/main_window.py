@@ -1,14 +1,15 @@
-# air_defense_project/gui/main_window.py
+## File: gui/main_window.py
 """
 Main window for the Air Defense GUI.
-Assembles UI components, manages application logic, state, and ROS2 interaction.
+Responsive layout with 3 columns: left 25%, center 50%, right 25%.
 """
-from gui.utils import make_group
 import time
 import random
 import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QFrame
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout
 from PyQt5.QtCore import QTimer
+
+from gui.utils import make_group
 from .styles import STYLESHEET
 from .ros_connector import ROSConnector
 from .components import (
@@ -21,80 +22,76 @@ from .components import (
     HealthCheckDisplay,
     LaserPowerController,
     LaserLensController,
-    PidTuningPanel,
+    PidTuningPanel
 )
 
 class AirDefenseGUI(QMainWindow):
-    """
-    Main application window. Orchestrates UI components and simulated ROS interactions.
-    """
     def __init__(self):
         super().__init__()
         self.system_active = False
         self.initial_log_entries = [
             "[CORE] GUI Initialized.",
-            "[CORE] Style applied. Awaiting system start...",
+            "[CORE] Style applied..."
         ]
         self.ros_connector = ROSConnector(self)
 
-        self._initUI()
-        self._connect_signals_slots()
-        self._setup_timers()
-
-# File: gui/main_window.py
-# (Only the relevant _initUI section is shown for brevity)
-    def _initUI(self):
-        self.setWindowTitle('Air Defense GUI v3.2 (Granular & Refined)')
-        self.setGeometry(100, 100, 1360, 920)
-        self.setStyleSheet(STYLESHEET)
-
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout(central_widget)
-
-        # Instantiate components
+        # Instantiate UI components before layout
         self.no_fire_zone = NoFireZoneWidget()
         self.system_modes_panel = SystemModesPanel()
         self.log_display = LogDisplay()
         self.system_control_buttons = SystemControlButtons()
         self.image_view = ImageView()
+        # Constrain camera feed size
+        self.image_view.setMaximumWidth(750)
+        self.image_view.setMaximumHeight(750)
         self.movement_controls = MovementControls()
         self.health_check_display = HealthCheckDisplay()
         self.laser_power_controller = LaserPowerController()
         self.laser_lens_controller = LaserLensController()
         self.pid_tuning_panel = PidTuningPanel()
 
+        self.setStyleSheet(STYLESHEET)
+        self._initUI()
+        self._connect_signals_slots()
+        self._setup_timers()
+
+    def _initUI(self):
+        self.setWindowTitle('Air Defense GUI v3.2')
+        # Allow free resizing, initial size 1100x800
+        self.resize(1100, 800)
+
+        central = QWidget()
+        self.setCentralWidget(central)
+        main_layout = QHBoxLayout(central)
+
         # --- Assemble Panels ---
-        # Left Panel: No-Fire Zone (top), then System Modes, then System Log
-        left_panel = QFrame()
-        left_panel.setObjectName("LeftPanelFrame")
-        left_layout = QVBoxLayout(left_panel)
+        # Left panel (25%)
+        left_layout = QVBoxLayout()
         left_layout.addWidget(self.no_fire_zone)
         left_layout.addWidget(self.system_modes_panel)
-        left_layout.addWidget(self.log_display, 1)
-        main_layout.addWidget(left_panel, 1)
+        left_layout.addWidget(self.log_display, stretch=1)
+        main_layout.addLayout(left_layout, stretch=1)
 
-        # Center Panel: Control, Camera, Movement
-        center_panel = QFrame()
-        center_panel.setObjectName("CenterPanelFrame")
-        center_layout = QVBoxLayout(center_panel)
-        center_layout.addWidget(self.system_control_buttons)
-        center_layout.addWidget(self.image_view, 5)
-        center_layout.addWidget(self.movement_controls)
-        main_layout.addWidget(center_panel, 3)
+        # Center panel (50%)
+        center_layout = QVBoxLayout()
+        center_layout.addWidget(self.system_control_buttons, stretch=3)
+        center_layout.addWidget(self.image_view, stretch=3)
+        center_layout.addWidget(self.movement_controls, stretch=4)
+        main_layout.addLayout(center_layout, stretch=2)
 
-        # Right Panel: Health, Laser, PID
-        right_panel = QFrame()
-        right_panel.setObjectName("RightPanelFrame")
-        right_layout = QVBoxLayout(right_panel)
+        # Right panel (25%)
+        right_layout = QVBoxLayout()
         right_layout.addWidget(self.health_check_display)
         right_layout.addWidget(self.laser_power_controller)
         right_layout.addWidget(self.laser_lens_controller)
         right_layout.addWidget(self.pid_tuning_panel)
         right_layout.addStretch(1)
-        main_layout.addWidget(right_panel, 1)
+        main_layout.addLayout(right_layout, stretch=1)
 
+        # Load initial logs
         self.log_display.add_initial_logs(self.initial_log_entries)
+
+
 
 
     def _setup_timers(self):
@@ -113,11 +110,9 @@ class AirDefenseGUI(QMainWindow):
         self.system_control_buttons.system_start_requested.connect(self._start_system)
         self.system_control_buttons.system_stop_requested.connect(self._stop_system)
         # Image View
+        # Image View
         self.image_view.detection_layer_changed.connect(self._handle_detection_layer_change)
         self.image_view.log_message_requested.connect(self.log_display.add_log_entry)
-        self.image_view.image_successfully_loaded.connect(
-            lambda p: self.log_display.add_log_entry(f"Static image loaded: {os.path.basename(p)}", False)
-        )
         # No-Fire Zone
         self.no_fire_zone.zoneDefined.connect(self._handle_no_fire_zone)
         self.no_fire_zone.zoneCleared.connect(self._handle_clear_no_fire_zone)

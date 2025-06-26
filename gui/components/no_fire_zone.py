@@ -3,8 +3,12 @@ from PyQt5.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import pyqtSignal
 
 class NoFireZoneWidget(QWidget):
-    # Signal emitted when zone is defined/cleared
-    # Emits dict with x_min and x_max
+    """
+    Widget to define a no-fire zone along the X axis with lower and upper limits.
+    Emits:
+      - zoneDefined(dict) with {'x_lower': float, 'x_upper': float}
+      - zoneCleared()
+    """
     zoneDefined = pyqtSignal(dict)
     zoneCleared = pyqtSignal()
 
@@ -13,26 +17,28 @@ class NoFireZoneWidget(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        # Group box container
-        group = QGroupBox("No-Fire Zone (X-axis)")
+        group = QGroupBox("No-Fire Zone (X-axis Limits)")
         layout = QVBoxLayout()
 
-        # Instruction label
+        # Instruction
         self.label = QLabel(
-            "Define a no-fire limit along X-axis:\n"
-            "• Enter positive limit value below\n"
-            "• Zone will be set from -X to +X"
+            "Enter lower and upper X-axis limits for no-fire zone:\n"
+            "• Lower limit: the minimum X coordinate\n"
+            "• Upper limit: the maximum X coordinate"
         )
         layout.addWidget(self.label)
 
-        # Input for X limit
+        # Input fields
         form_layout = QFormLayout()
-        self.input_limit = QLineEdit()
-        self.input_limit.setPlaceholderText("Enter X limit")
-        form_layout.addRow("X Limit:", self.input_limit)
+        self.input_lower = QLineEdit()
+        self.input_lower.setPlaceholderText("Lower limit (float)")
+        self.input_upper = QLineEdit()
+        self.input_upper.setPlaceholderText("Upper limit (float)")
+        form_layout.addRow("Lower X:", self.input_lower)
+        form_layout.addRow("Upper X:", self.input_upper)
         layout.addLayout(form_layout)
 
-        # Buttons row
+        # Buttons
         btn_layout = QHBoxLayout()
         self.btn_set = QPushButton("Set Zone")
         self.btn_clear = QPushButton("Clear Zone")
@@ -40,36 +46,36 @@ class NoFireZoneWidget(QWidget):
         btn_layout.addWidget(self.btn_clear)
         layout.addLayout(btn_layout)
 
-        # Feedback
+        # Status
         self.status = QLabel("Zone: None")
         layout.addWidget(self.status)
 
         group.setLayout(layout)
-
-        # Main widget layout
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(group)
         main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(main_layout)
 
-        # Connect signals
+        # Connections
         self.btn_set.clicked.connect(self.on_set_zone)
         self.btn_clear.clicked.connect(self.on_clear_zone)
 
     def on_set_zone(self):
-        # Read user input for limit
         try:
-            limit = float(self.input_limit.text())
+            lower = float(self.input_lower.text())
+            upper = float(self.input_upper.text())
         except ValueError:
-            self.status.setText("Invalid input: limit must be a number.")
+            self.status.setText("Invalid input: please enter numeric limits.")
             return
-        x_min = -abs(limit)
-        x_max = abs(limit)
-        zone = {'x_min': x_min, 'x_max': x_max}
-        self.status.setText(f"Zone: {x_min} to {x_max}")
+        if lower > upper:
+            self.status.setText("Lower limit must be <= upper limit.")
+            return
+        zone = {'x_lower': lower, 'x_upper': upper}
+        self.status.setText(f"Zone: [{lower}, {upper}]")
         self.zoneDefined.emit(zone)
 
     def on_clear_zone(self):
-        self.input_limit.clear()
+        self.input_lower.clear()
+        self.input_upper.clear()
         self.status.setText("Zone: None")
         self.zoneCleared.emit()
