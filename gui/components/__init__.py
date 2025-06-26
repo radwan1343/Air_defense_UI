@@ -6,6 +6,7 @@ from .command_terminal import CommandTerminal
 from .log_display import LogDisplay
 from .system_control_buttons import SystemControlButtons
 from .image_view import ImageView
+from .no_fire_zone import NoFireZoneWidget
 from .system_modes_panel import SystemModesPanel
 from .movement_controls import MovementControls
 from .health_check_display import HealthCheckDisplay
